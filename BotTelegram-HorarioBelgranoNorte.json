@@ -1,0 +1,423 @@
+{
+  "name": "BotTelegram-HorarioBelgranoNorte",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -1200,
+        -48
+      ],
+      "id": "89be95c3-709f-424e-86be-c6e9ce460a78",
+      "name": "Telegram Trigger",
+      "webhookId": "0b5519c4-9c90-48a5-829c-5f969f16e9c1",
+      "credentials": {
+        "telegramApi": {
+          "id": "1DsfxqmLrEfScGaZ",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.message.text }}",
+        "options": {
+          "systemMessage": "=1️⃣ Extraé del mensaje del usuario\n\nEjemplo:\n\n“Próximo tren desde Villa de Mayo a Retiro, miércoles”\n\nDe ahí extraé:\n\nORIGEN: “Villa de Mayo”\n\nDESTINO: “Retiro”\n\nDIA: “Miércoles”\n\n2️⃣ Normalizá estaciones\n\nAplicá minúsculas, sin acentos, sin puntos, sin espacios repetidos.\nMapeá con esta tabla:\n\n1=Retiro, 2=Saldías, 3=Ciudad Universitaria, 4=A. del Valle, 5=Padilla, 6=Florida, 7=Munro, 8=Carapachay, 9=Villa Adelina, 10=Boulogne, 11=Montes, 12=Don Torcuato, 13=A. Sourdeaux, 14=Villa de Mayo, 15=Los Polvorines, 16=Pablo Nogués, 17=Grand Bourg, 18=Tierras Altas, 19=Tortuguitas, 20=Alberti, 21=Del Viso, 22=Cecilia Grierson, 23=Villa Rosa.\n\nSi el texto no coincide, devolvé error \"No se reconoce la estación\".\n\n3️⃣ Día → GRUPODIA\n\nLunes, martes, miércoles, jueves o viernes → “Lunes a Viernes”\n\nSábado → “Sábados”\n\nDomingo o feriado → “Domingos y Feriados”\n\n4️⃣ Sentido y CUADRO\n\nSi ID_DESTINO > ID_ORIGEN → “Trenes Hacia Villa Rosa”\n\nSi ID_DESTINO < ID_ORIGEN → “Trenes Hacia Retiro”\n\nGRUPODIA\tSENTIDO\tCUADRO\nLunes a Viernes\tHacia Villa Rosa\t1\nLunes a Viernes\tHacia Retiro\t2\nSábados\tHacia Villa Rosa\t3\nSábados\tHacia Retiro\t4\nDomingos y Feriados\tHacia Retiro\t5\nDomingos y Feriados\tHacia Villa Rosa\t6\n5️⃣ Hora local\n\nObtené la hora argentina con {{ $now }}-3\ny devolvela como HORA_LOCAL.\n\n\n6️⃣ Salida esperada\n\nDevolvé solo datos estructurados, no frases:\n\nEjemplo\n\n{\n  \"ORIGEN\": \"Villa de Mayo\",\n  \"DESTINO\": \"Retiro\",\n  \"ID_ORIGEN\": 14,\n  \"ID_DESTINO\": 1,\n  \"GRUPODIA\": \"Lunes a Viernes\",\n  \"SENTIDO\": \"Trenes Hacia Retiro\",\n  \"CUADRO\": 2,\n  \"HORA_LOCAL\": \"22:59\"\n}\n\n// Convierte el texto \"output\" del AI Agent en un objeto JSON usable\nlet parsed = {};\ntry {\n  parsed = JSON.parse($json.output);\n} catch (e) {\n  parsed = {};\n}\n\nreturn [{ json: parsed }];"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        -1008,
+        -64
+      ],
+      "id": "c92e04bf-0f9b-4408-8143-0c85005d504c",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        -896,
+        240
+      ],
+      "id": "39db761e-4312-40f1-9ca9-56fe5480bef2",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "Pc9cuf7xx56tWfDu",
+          "name": "n8n free OpenAI API credits"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $json.message.text }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        -704,
+        272
+      ],
+      "id": "f8fb1041-b11c-4d95-94a8-6ea094e0462a",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $(\"Telegram Trigger\").all()[0].json.message.chat.id }}\n",
+        "text": "={{ $json.output }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        688,
+        -16
+      ],
+      "id": "856a18d7-e96e-4932-9eaf-ffd1304f5d4b",
+      "name": "Send a text message",
+      "webhookId": "c0e8c9e8-6776-4e6a-b2ca-f4e4e150d367",
+      "credentials": {
+        "telegramApi": {
+          "id": "1DsfxqmLrEfScGaZ",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "10l-6LdMU0jupX_9WHTF4D8ThAoSbgF9nAe_u-AkIBQA",
+          "mode": "list",
+          "cachedResultName": "Horarios Belgrano Norte 2",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/10l-6LdMU0jupX_9WHTF4D8ThAoSbgF9nAe_u-AkIBQA/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "={{ \"CUADRO \" + $json.output.parseJson().CUADRO }}",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -448,
+        112
+      ],
+      "id": "67519f29-99a0-4489-be89-602e3fabbfb0",
+      "name": "Get row(s) in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "erDQj0o7qxVMchbq",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows = $input.all();\nconst agentOutput = JSON.parse($('AI Agent').first().json.output);\n\nconst ID_ORIGEN = agentOutput.ID_ORIGEN;\nconst ID_DESTINO = agentOutput.ID_DESTINO;\nconst HORA_LOCAL = agentOutput.HORA_LOCAL;\n\n// --- Función auxiliar para convertir HH:MM a minutos ---\nconst toMin = (t) => {\n  const [h, m] = t.split(':').map(Number);\n  return h * 60 + m;\n};\n\n// --- Función para formatear minutos en texto ---\nconst formatoTiempo = (min) => {\n  if (!min) return \"No disponible\";\n  const h = Math.floor(min / 60);\n  const m = min % 60;\n  if (h === 0) return `${m} min`;\n  return `${h} h ${m} min`;\n};\n\n// --- Buscar las columnas correspondientes ---\nconst colOrigen = ID_ORIGEN.toString();\nconst colDestino = ID_DESTINO.toString();\n\n// --- Obtener todos los horarios de esa columna ---\nconst horariosOrigen = rows.map(row => row.json[colOrigen]).filter(h => h);\nconst horariosDestino = rows.map(row => row.json[colDestino]).filter(h => h);\n\n// --- Filtrar horarios válidos (>= hora actual) ---\nconst horariosValidos = horariosOrigen\n  .filter(horario => horario >= HORA_LOCAL)\n  .slice(0, 4);\n\n// --- Si no hay más trenes disponibles ---\nif (horariosValidos.length === 0) {\n  return [{\n    json: {\n      origen: agentOutput.ORIGEN,\n      destino: agentOutput.DESTINO,\n      message: \"No hay más trenes disponibles hoy 🚉\",\n      horaActual: HORA_LOCAL\n    }\n  }];\n}\n\n// --- Construir lista de próximos trenes con hora de arribo ---\nconst proximosTrenes = horariosValidos.map(hSalida => {\n  const fila = rows.find(r => r.json[colOrigen] === hSalida);\n  const hArribo = fila?.json[colDestino] || \"No disponible\";\n\n  // Calcular tiempo estimado\n  let tiempoMin = null;\n  if (hArribo && /^\\d{1,2}:\\d{2}$/.test(hArribo)) {\n    tiempoMin = toMin(hArribo) - toMin(hSalida);\n  }\n\n  return {\n    salida: hSalida,\n    arribo: hArribo,\n    tiempoEstimado: tiempoMin > 0 ? formatoTiempo(tiempoMin) : \"No disponible\"\n  };\n});\n\n// --- Generar mensaje de texto claro para el usuario ---\nconst mensajeViajes = proximosTrenes\n  .map(t => `🕓 Si tomás el tren de las ${t.salida}, llegás a las ${t.arribo} (${t.tiempoEstimado}).`)\n  .join(\"\\n\");\n\n// --- Salida final ---\nreturn [{\n  json: {\n    origen: agentOutput.ORIGEN,\n    destino: agentOutput.DESTINO,\n    horaActual: HORA_LOCAL,\n    proximosTrenes,\n    mensaje: mensajeViajes\n  }\n}];\n\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -224,
+        112
+      ],
+      "id": "fd505f29-d455-40cc-95df-1b76234906b2",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.mensaje + $json.Temperature }}",
+        "options": {
+          "systemMessage": "=Rol: Sos un agente de información de Ferrovías.\nTu tarea es comunicar los próximos trenes al usuario de forma cálida, clara y respetuosa, manteniendo un tono amable y fácil de leer para personas de todas las edades.\n\nEl contenido principal proviene del campo {{ $json.mensaje }} y ( {{ $json.Temperature.Metric.Value }} {{ $json.WeatherText }})\n\nMostralo como si fueras un agente real, usando frases cortas, amables y con buena puntuación.\nEvitá lenguaje técnico, símbolos innecesarios o emojis en exceso.\nFormato sugerido del mensaje:\n\n🚆 Ferrovías – Información de Trenes\n\n{{ $json.mensaje }}\n\n\nTemperatura Actual en {{ $json.origen }} : {{ $json.Temperature.Metric.Value }}\n\nGracias por viajar con Ferrovías.\nLe deseamos un muy buen viaje. 🌤️\n\nReglas:\n\nSi el mensaje indica que no hay trenes, decilo con empatía (ejemplo: “Por hoy no hay más trenes disponibles 🚉”).\n\nSi hay horarios, mostralos con claridad, uno por línea.\n\nNo repitas “mensaje:” ni nombres de variables.\n\nEl resultado final debe ser natural, legible y amable.\n\n💡 Ejemplo de salida:\n\n🚆 Ferrovías – Información de Trenes\n\n🕓 Si tomás el tren de las 11:32, llegás a las 12:40 (1 h 8 min).\n🕓 Si tomás el tren de las 11:52, llegás a las 13:00 (1 h 8 min).\n\nTemperatura Actual en {{ $json.origen }} : 19° Soleado\n\nGracias por viajar con Ferrovías.\nLe deseamos un muy buen viaje. 🌤️"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        352,
+        -112
+      ],
+      "id": "d97766db-7ca2-4ec0-9013-37835b024842",
+      "name": "AI Agent1"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        240,
+        128
+      ],
+      "id": "9807428a-9520-463f-9d1b-5c85ad31f57f",
+      "name": "OpenAI Chat Model1",
+      "credentials": {
+        "openAiApi": {
+          "id": "Pc9cuf7xx56tWfDu",
+          "name": "n8n free OpenAI API credits"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "=\n{{ $('Telegram Trigger').item.json.message.chat.id }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        416,
+        128
+      ],
+      "id": "28835f08-4864-49d0-a38a-dbeed66e054c",
+      "name": "Simple Memory1"
+    },
+    {
+      "parameters": {
+        "url": "http://dataservice.accuweather.com/locations/v1/cities/search\n\n",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "specifyQuery": "json",
+        "jsonQuery": "={ \n\"q\":\"{{ $json.output ? JSON.parse($json.output).ORIGEN : $json.ORIGEN }}\" \n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -496,
+        -256
+      ],
+      "id": "2b1f7661-c8cf-40e6-b6bc-f43c3f62195e",
+      "name": "HTTP Request",
+      "alwaysOutputData": true,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "ZIoEDO5mduJIKBrc",
+          "name": "Header Auth account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "=http://dataservice.accuweather.com/currentconditions/v1/{{ $json.Key }}\n",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "specifyQuery": "json",
+        "jsonQuery": "{\n  \"language\": \"es-AR\",\n  \"details\": \"true\"\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -240,
+        -256
+      ],
+      "id": "c9d1490e-686d-4557-af2f-d7f04de2ecf4",
+      "name": "HTTP Request1",
+      "alwaysOutputData": true,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "ZIoEDO5mduJIKBrc",
+          "name": "Header Auth account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        0,
+        -64
+      ],
+      "id": "76a22357-225b-4d4d-8241-11c927c886b3",
+      "name": "Merge",
+      "alwaysOutputData": true
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Get row(s) in sheet",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "AI Agent1": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory1": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request1": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "a29228bf-7718-4686-bd1f-bacc20dc285d",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "1181b774a5a36f0664eec9f4dbe26822d9e7c6b887aac3727ab9afb741eb242b"
+  },
+  "id": "mGM2SZAe9cOjQ5HK",
+  "tags": []
+}
